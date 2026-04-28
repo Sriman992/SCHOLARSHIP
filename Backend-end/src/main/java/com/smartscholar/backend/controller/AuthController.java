@@ -19,7 +19,7 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
-    // LOGIN → returns JWT
+    // LOGIN → returns JWT with user data
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User request) {
 
@@ -31,7 +31,12 @@ public class AuthController {
 
         String token = JwtUtil.generateToken(user.getEmail(), user.getRole());
 
-        return ResponseEntity.ok(token);
+        // Return as JSON object so frontend can parse it correctly
+        return ResponseEntity.ok(new java.util.HashMap<>() {{
+            put("token", token);
+            put("role", user.getRole());
+            put("email", user.getEmail());
+        }});
     }
 
     // REGISTER
