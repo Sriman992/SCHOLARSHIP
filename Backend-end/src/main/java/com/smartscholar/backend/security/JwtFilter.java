@@ -1,9 +1,10 @@
 package com.smartscholar.backend.security;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -44,14 +45,20 @@ public class JwtFilter extends OncePerRequestFilter {
             Claims claims = JwtUtil.validateToken(token);
 
             String email = claims.getSubject();
+            String role = claims.get("role", String.class);
 
-            // 🔥 THIS IS THE CRITICAL PART
             UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+                    new UsernamePasswordAuthenticationToken(
+                            email,
+                            null,
+                            List.of(new SimpleGrantedAuthority(role))
+                    );
 
             SecurityContextHolder.getContext().setAuthentication(auth);
+            req.setAttribute("email", email);
+            req.setAttribute("role", role);
 
-            System.out.println("✅ Authenticated user: " + email);
+            System.out.println("✅ Authenticated user: " + email + " with role: " + role);
 
             chain.doFilter(req, res);
 
