@@ -24,6 +24,11 @@ public class JwtFilter implements Filter {
 
         HttpServletRequest req = (HttpServletRequest) request;
 
+        if (req.getRequestURI().startsWith("/auth")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         String header = req.getHeader("Authorization");
 
         if (header != null && header.startsWith("Bearer ")) {
