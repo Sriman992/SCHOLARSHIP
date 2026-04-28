@@ -23,27 +23,36 @@ public class JwtFilter implements Filter {
             throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
+        HttpServletResponse res = (HttpServletResponse) response;
+
+        System.out.println("🔍 Incoming request: " + req.getRequestURI());
 
         if (req.getRequestURI().startsWith("/auth")) {
+            System.out.println("✅ Auth endpoint - skipping JWT validation");
             chain.doFilter(request, response);
             return;
         }
 
         String header = req.getHeader("Authorization");
+        System.out.println("📋 Authorization header: " + header);
 
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-
-            try {
-                Claims claims = JwtUtil.validateToken(token);
-                req.setAttribute("email", claims.getSubject());
-                req.setAttribute("role", claims.get("role"));
-            } catch (Exception e) {
-                ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-                return;
-            }
+        if (header == null || !header.startsWith("Bearer ")) {
+            System.out.println("❌ No valid Bearer token found");
+            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
+            return;
         }
 
-        chain.doFilter(request, response);
+        String token = header.substring(7);
+
+        try {
+            Claims claims = JwtUtil.validateToken(token);
+            System.out.println("✅ Token valid for: " + claims.getSubject());
+            req.setAttribute("email", claims.getSubject());
+            req.setAttribute("role", claims.get("role"));
+            chain.doFilter(request, response);
+        } catch (Exception e) {
+            System.out.println("🚨 JWT ERROR: " + e.getMessage());
+            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+        }
     }
 }

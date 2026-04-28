@@ -1,14 +1,25 @@
 package com.smartscholar.backend.controller;
 
-import com.smartscholar.backend.model.Application;
-import io.jsonwebtoken.Claims;
-import com.smartscholar.backend.util.JwtUtil;
-import com.smartscholar.backend.service.ApplicationService;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.smartscholar.backend.model.Application;
+import com.smartscholar.backend.service.ApplicationService;
+import com.smartscholar.backend.util.JwtUtil;
+
+import io.jsonwebtoken.Claims;
 
 @RestController
 @RequestMapping("/applications")
@@ -64,5 +75,18 @@ public class ApplicationController {
     @GetMapping("/student/{name}")
     public ResponseEntity<List<Application>> getByStudent(@PathVariable String name) {
         return ResponseEntity.ok(applicationService.getByStudent(name));
+    }
+
+    // 🧪 TEST ENDPOINT
+    @GetMapping("/test-secure")
+    public ResponseEntity<String> testSecure(jakarta.servlet.http.HttpServletRequest request) {
+        Object email = request.getAttribute("email");
+        Object role = request.getAttribute("role");
+
+        if (email == null) {
+            return ResponseEntity.status(401).body("❌ Token not parsed - no email attribute found");
+        }
+
+        return ResponseEntity.ok("✅ Success! Email: " + email + ", Role: " + role);
     }
 }
