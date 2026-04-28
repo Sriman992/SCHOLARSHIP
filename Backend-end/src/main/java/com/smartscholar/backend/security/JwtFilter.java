@@ -24,9 +24,7 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
 
-        System.out.println("🔍 Incoming request: " + req.getRequestURI());
-
-        // Skip auth endpoints
+        // Skip public endpoints
         if (req.getRequestURI().startsWith("/auth")) {
             chain.doFilter(req, res);
             return;
@@ -34,37 +32,29 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String header = req.getHeader("Authorization");
 
-        if (header == null || !header.startsWith("Bearer ")) {
-            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing token");
-            return;
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+
+            try {
+                Claims claims = JwtUtil.validateToken(token);
+                String email = claims.getSubject();
+                String role = (String) claims.get("role");
+
+                var auth = new UsernamePasswordAuthenticationToken(
+                        email,
+                        null,
+                        List.of(new SimpleGrantedAuthority(role))
+                );
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+            } catch (Exception e) {
+                // ❗ Do NOT sendError here
+                SecurityContextHolder.clearContext();
+            }
         }
 
-        String token = header.substring(7);
-
-        try {
-            Claims claims = JwtUtil.validateToken(token);
-
-            String email = claims.getSubject();
-            String role = claims.get("role", String.class);
-
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(
-                            email,
-                            null,
-                            List.of(new SimpleGrantedAuthority(role))
-                    );
-
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            req.setAttribute("email", email);
-            req.setAttribute("role", role);
-
-            System.out.println("✅ Authenticated user: " + email + " with role: " + role);
-
-            chain.doFilter(req, res);
-
-        } catch (Exception e) {
-            System.out.println("🚨 JWT ERROR: " + e.getMessage());
-            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-        }
+        // Always continue
+        chain.doFilter(req, res);
     }
 }
